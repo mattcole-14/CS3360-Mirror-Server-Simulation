@@ -3,7 +3,7 @@ import random
 def generate_failure_interval(mtbf):
     return max(1, round(random.expovariate(1 / mtbf)))
 
-def simulate_run(server_mtbf, run_number):
+def simulate_run(server_mtbf, run_number, show_output=True):
     servers = []
 
     for i, mtbf in enumerate(server_mtbf):
@@ -24,10 +24,12 @@ def simulate_run(server_mtbf, run_number):
 
     current_time = 0
 
-    print(f"\nSimulation Run {run_number}")
+    if show_output:
+        print(f"\nSimulation Run {run_number}")
 
-    # initial state
-    print(f"{0:3}", end=" | ")
+    # Print initial state
+    if show_output:
+        print(f"{0:3}", end=" | ")
 
     for server in servers:
         print(f"{server['status']:4}", end=" | ")
@@ -81,18 +83,21 @@ def simulate_run(server_mtbf, run_number):
                 server["failures"] += 1
 
         # Print state after this event
-        print(f"{current_time:3}", end=" | ")
+        if show_output:
+            print(f"{current_time:3}", end=" | ")
 
-        for server in servers:
-            print(f"{server['status']:4}", end=" | ")
+            for server in servers:
+                print(f"{server['status']:4}", end=" | ")
 
-        print()
+            print()
 
         # End simulation if every server is down
         if all(server["status"] == "DOWN" for server in servers):
-            print(
-                f"\nTotal system failure occurred at hour {current_time}."
-            )
+            if show_output:
+                print(
+                    f"\nTotal system failure occurred at hour {current_time}."
+                )
+
             break
 
     return current_time, servers
