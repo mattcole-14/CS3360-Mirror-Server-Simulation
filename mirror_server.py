@@ -26,7 +26,7 @@ def simulate_run(server_mtbf, run_number):
 
     print(f"\nSimulation Run {run_number}")
 
-    # Print initial state
+    # initial state
     print(f"{0:3}", end=" | ")
 
     for server in servers:
@@ -117,8 +117,63 @@ def main():
     for i, mtbf in enumerate(server_mtbf):
         print(f"S{i:02} | {mtbf} |")
 
+        run_results = []
+    system_failure_times = []
+
     for run_number in range(1, 6):
-        simulate_run(server_mtbf, run_number)
+        failure_time, servers = simulate_run(server_mtbf, run_number)
+
+        system_failure_times.append(failure_time)
+        run_results.append(servers)
+
+    print("\nFinal Statistics")
+    
+    print(
+        "Server | Avg Uptime | Avg Downtime | Availability | MTBF"
+    )
+    print(
+        "--------------------------------------------------------"
+    )   
+
+    for i in range(num_servers):
+        total_uptime = 0
+        total_downtime = 0
+        total_failures = 0
+
+        for run in run_results:
+            total_uptime += run[i]["uptime"]
+            total_downtime += run[i]["downtime"]
+            total_failures += run[i]["failures"]
+
+        avg_uptime = total_uptime / 5
+        avg_downtime = total_downtime / 5
+
+        total_time = total_uptime + total_downtime
+
+        if total_time > 0:
+            availability = total_uptime / total_time * 100
+        else:
+            availability = 0
+
+        if total_failures > 0:
+            experimental_mtbf = total_uptime / total_failures
+        else:
+            experimental_mtbf = 0
+
+        print(
+            f"S{i:02}    | "
+            f"{avg_uptime:10.2f} | "
+            f"{avg_downtime:12.2f} | "
+            f"{availability:11.2f}% | "
+            f"{experimental_mtbf:.2f}"
+        )
+
+    average_failure_time = sum(system_failure_times) / 5
+
+    print(
+        f"\nAverage time until total system failure: "
+        f"{average_failure_time:.2f} hours"
+    )
         
 if __name__ == "__main__":
     main()
