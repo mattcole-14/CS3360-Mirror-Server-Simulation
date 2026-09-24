@@ -3,23 +3,13 @@ import random
 def generate_failure_interval(mtbf):
     return max(1, round(random.expovariate(1 / mtbf)))
 
-def main():
-    print("Mirror Server Simulation")
-
-    num_servers = int(input("Enter number of servers (2-5): "))
-
-    while num_servers < 2 or num_servers > 5:
-        print("Please enter a number between 2 and 5.")
-        num_servers = int(input("Enter number of servers (2-5): "))
-
-    print("\nServer Configuration")
-
+def simulate_run(server_mtbf, run_number):
     servers = []
 
-    for i in range(num_servers):
+    for i, mtbf in enumerate(server_mtbf):
         server = {
             "id": f"S{i:02}",
-            "mtbf": random.randint(10, 20),
+            "mtbf": mtbf,
             "status": "UP",
             "next_failure": 0,
             "recovery_time": None,
@@ -28,26 +18,22 @@ def main():
             "failures": 0
         }
 
-        server["next_failure"] = generate_failure_interval(server["mtbf"])
+        server["next_failure"] = generate_failure_interval(mtbf)
 
         servers.append(server)
 
-    for server in servers:
-        print(
-            f"{server['id']} | MTBF: {server['mtbf']} | "
-            f"First failure: {server['next_failure']}"
-        )
-
     current_time = 0
 
-    print("\nSimulation Run")
+    print(f"\nSimulation Run {run_number}")
 
+    # Print initial state
     print(f"{0:3}", end=" | ")
 
     for server in servers:
         print(f"{server['status']:4}", end=" | ")
 
     print()
+
     while True:
         event_times = []
 
@@ -62,13 +48,14 @@ def main():
 
         elapsed_time = current_time - previous_time
 
+        # Add uptime/downtime for the elapsed interval
         for server in servers:
             if server["status"] == "UP":
                 server["uptime"] += elapsed_time
             else:
                 server["downtime"] += elapsed_time
 
-        # Recover servers whose restoration finishes now
+        # Recover servers whose restoration completes now
         for server in servers:
             if (
                 server["status"] == "DOWN"
@@ -93,7 +80,7 @@ def main():
                 server["recovery_time"] = current_time + 2
                 server["failures"] += 1
 
-        # Print the state after this event
+        # Print state after this event
         print(f"{current_time:3}", end=" | ")
 
         for server in servers:
@@ -101,36 +88,37 @@ def main():
 
         print()
 
-        # Stop if every server is down
+        # End simulation if every server is down
         if all(server["status"] == "DOWN" for server in servers):
             print(
                 f"\nTotal system failure occurred at hour {current_time}."
             )
             break
 
-    print("\nStatistics")
+    return current_time, servers
 
-    for server in servers:
-        total_time = server["uptime"] + server["downtime"]
+def main():
+    print("Mirror Server Simulation")
 
-        if total_time > 0:
-            availability = server["uptime"] / total_time * 100
-        else:
-            availability = 0
+    num_servers = int(input("Enter number of servers (2-5): "))
 
-        if server["failures"] > 0:
-            experimental_mtbf = server["uptime"] / server["failures"]
-        else:
-            experimental_mtbf = 0
+    while num_servers < 2 or num_servers > 5:
+        print("Please enter a number between 2 and 5.")
+        num_servers = int(input("Enter number of servers (2-5): "))
 
-        print(
-            f"{server['id']} | "
-            f"Uptime: {server['uptime']} | "
-            f"Downtime: {server['downtime']} | "
-            f"Availability: {availability:.2f}% | "
-            f"MTBF: {experimental_mtbf:.2f}"
-        )
+    print("\nServer Configuration")
 
+    server_mtbf = []
 
+    for i in range(num_servers):
+        mtbf = random.randint(10, 20)
+        server_mtbf.append(mtbf)
+
+    for i, mtbf in enumerate(server_mtbf):
+        print(f"S{i:02} | {mtbf} |")
+
+    for run_number in range(1, 6):
+        simulate_run(server_mtbf, run_number)
+        
 if __name__ == "__main__":
     main()
