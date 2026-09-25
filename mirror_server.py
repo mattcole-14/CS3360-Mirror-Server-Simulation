@@ -1,9 +1,11 @@
 import random
 
+
 def generate_failure_interval(mtbf):
     return max(1, round(random.expovariate(1 / mtbf)))
 
-def simulate_run(server_mtbf, run_number, show_output=True):
+
+def simulate_run(server_mtbf, run_number):
     servers = []
 
     for i, mtbf in enumerate(server_mtbf):
@@ -17,24 +19,28 @@ def simulate_run(server_mtbf, run_number, show_output=True):
             "downtime": 0,
             "failures": 0
         }
-
         server["next_failure"] = generate_failure_interval(mtbf)
-
         servers.append(server)
 
     current_time = 0
+    print(f"\nSimulation Run {run_number}")
 
-    if show_output:
-        print(f"\nSimulation Run {run_number}")
+    #table header
+    header = "    | " + " | ".join(
+        f"{server['id']:4}" for server in servers
+    ) + " |"
 
-    # Print initial state
-    if show_output:
-        print(f"{0:3}", end=" | ")
+    print(header)
+    print("-" * len(header))
 
-    for server in servers:
-        print(f"{server['status']:4}", end=" | ")
-
-    print()
+    #initial state at 0
+    print(
+        f"{0:3} | "
+        + " | ".join(
+            f"{server['status']:4}" for server in servers
+        )
+        + " |"
+    )
 
     while True:
         event_times = []
@@ -47,17 +53,16 @@ def simulate_run(server_mtbf, run_number, show_output=True):
 
         previous_time = current_time
         current_time = min(event_times)
-
         elapsed_time = current_time - previous_time
 
-        # Add uptime/downtime for the elapsed interval
+        # uptime/downtime
         for server in servers:
             if server["status"] == "UP":
                 server["uptime"] += elapsed_time
             else:
                 server["downtime"] += elapsed_time
 
-        # Recover servers whose restoration completes now
+        # recover servers 
         for server in servers:
             if (
                 server["status"] == "DOWN"
@@ -68,10 +73,9 @@ def simulate_run(server_mtbf, run_number, show_output=True):
 
                 server["next_failure"] = (
                     current_time
-                    + generate_failure_interval(server["mtbf"])
-                )
+                    + generate_failure_interval(server["mtbf"]))
 
-        # Fail servers whose failure occurs now
+        # fail servers
         for server in servers:
             if (
                 server["status"] == "UP"
@@ -82,36 +86,27 @@ def simulate_run(server_mtbf, run_number, show_output=True):
                 server["recovery_time"] = current_time + 2
                 server["failures"] += 1
 
-        # Print state after this event
-        if show_output:
-            print(f"{current_time:3}", end=" | ")
+        # print state change
+        print(
+            f"{current_time:3} | "
+            + " | ".join(
+                f"{server['status']:4}" for server in servers
+            )
+            + " |")
 
-            for server in servers:
-                print(f"{server['status']:4}", end=" | ")
-
-            print()
-
-        # End simulation if every server is down
+        # end sim when all servers are down
         if all(server["status"] == "DOWN" for server in servers):
-            if show_output:
-                print(
-                    f"\nTotal system failure occurred at hour {current_time}."
-                )
-
             break
 
     return current_time, servers
 
-def main():
-    print("Mirror Server Simulation")
 
+def main():
     num_servers = int(input("Enter number of servers (2-5): "))
 
     while num_servers < 2 or num_servers > 5:
         print("Please enter a number between 2 and 5.")
         num_servers = int(input("Enter number of servers (2-5): "))
-
-    print("\nServer Configuration")
 
     server_mtbf = []
 
@@ -119,26 +114,33 @@ def main():
         mtbf = random.randint(10, 20)
         server_mtbf.append(mtbf)
 
+    # print configuration
+    print("\nServer Configuration")
+    
     for i, mtbf in enumerate(server_mtbf):
         print(f"S{i:02} | {mtbf} |")
 
-        run_results = []
+    # run same configuration 5 times
+    run_results = []
     system_failure_times = []
 
     for run_number in range(1, 6):
-        failure_time, servers = simulate_run(server_mtbf, run_number)
+        failure_time, servers = simulate_run(
+            server_mtbf,
+            run_number
+        )
 
         system_failure_times.append(failure_time)
         run_results.append(servers)
 
+    # final stats
     print("\nFinal Statistics")
-    
     print(
         "Server | Avg Uptime | Avg Downtime | Availability | MTBF"
     )
     print(
         "--------------------------------------------------------"
-    )   
+    )
 
     for i in range(num_servers):
         total_uptime = 0
@@ -179,6 +181,7 @@ def main():
         f"\nAverage time until total system failure: "
         f"{average_failure_time:.2f} hours"
     )
-        
+
+
 if __name__ == "__main__":
     main()
